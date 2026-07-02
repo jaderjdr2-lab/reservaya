@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TenantMemberRole {
+  OWNER
+  STAFF
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+enum TenantSubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  SUSPENDED
+}
+
+model Tenant {
+  id                 String                   @id @default(cuid())
+  name               String
+  subdomain          String                   @unique
+  slug               String                   @unique
+  description        String?
+  logoUrl            String?
+  phone              String?
+  whatsapp           String?
+  address            String?
+  city               String                   @default("Barrancabermeja")
+  timezone           String                   @default("America/Bogota")
+  isActive           Boolean                  @default(true)
+  subscriptionStatus TenantSubscriptionStatus @default(TRIAL)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  members      TenantMember[]
+  services     Service[]
+  businessHours BusinessHour[]
+  bookings     Booking[]
+  subscription Subscription?
+
+  @@index([subdomain])
+  @@index([slug])
+  @@index([isActive])
+}
+
+model UserProfile {
+  id             String   @id @default(cuid())
+  supabaseUserId String   @unique
+  email          String   @unique
+  fullName       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  memberships TenantMember[]
+}
+
+model TenantMember {
+  id            String           @id @default(cuid())
+  tenantId      String
+  userProfileId String
+  role          TenantMemberRole @default(OWNER)
+  createdAt     DateTime         @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userProfileId])
+  @@index([userProfileId])
+  @@index([tenantId])
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  description     String?
+  durationMinutes Int
+  priceCents      Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+}
+
+model BusinessHour {
+  id        String @id @default(cuid())
+  tenantId  String
+  dayOfWeek Int
+  openTime  String
+  closeTime String
+  isClosed  Boolean @default(false)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, dayOfWeek])
+  @@index([tenantId])
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  tenantId      String
+  serviceId     String
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  bookingDate   DateTime      @db.Date
+  startTime     String
+  endTime       String
+  status        BookingStatus @default(CONFIRMED)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, bookingDate])
+  @@index([tenantId, serviceId, bookingDate, startTime])
+  @@index([status])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  tenantId           String             @unique
+  status             SubscriptionStatus @default(TRIAL)
+  monthlyPriceCents  Int                @default(15000000)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
