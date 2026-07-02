@@ -58,6 +58,26 @@ Registro de cambios importantes durante auditoría Loop Engineering.
 
 Negocios creados antes de esta auditoría pueden tener `monthlyPriceCents = 4000000` en BD. Nuevos negocios usan `15000000`. Admin puede actualizar manualmente o ejecutar SQL de migración cuando Jhon lo apruebe.
 
+## 2026-07-02 — Fase 2 deploy prep
+
+- **Instalado** Git 2.55.0 via winget
+- **Inicializado** repo Git — commit `ae01cea` en rama `main`
+- **Actualizado** `lib/constants.ts` — `reservaya.co` en MAIN_DOMAINS
+- **Creado** `docs/PHASE2_DEPLOY.md` — guía paso a paso Vercel + dominio + Supabase
+- **Preparado** Wompi stubs: `lib/wompi/config.ts`, `/api/billing/checkout`, `/api/billing/webhook` (503 sin credenciales)
+- **Tests** 11/11 pasando (incl. hostname producción)
+
+### Pendiente (requiere acción de Jhon)
+
+- Push a GitHub (crear repo + `git push`)
+- Deploy Vercel + variables entorno
+- DNS reservaya.co + wildcard
+- Supabase Auth redirect URLs producción
+- Credenciales Wompi sandbox
+- QA E2E en producción
+
+---
+
 ## Backup previo
 
 - ZIP: `C:\Users\PC\Desktop\RESERVAYA-backup-checkpoint-20260701-224745.zip`
