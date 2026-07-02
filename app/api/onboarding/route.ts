@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { ensureUserProfile, getOwnedTenant } from '@/lib/auth'
 import { MONTHLY_PRICE_CENTS, RESERVED_SUBDOMAINS } from '@/lib/constants'
+import { getDefaultBusinessHours } from '@/lib/default-business-hours'
 import { addMonths, isValidSubdomain, normalizeSubdomain, slugify } from '@/lib/utils'
 import { isValidColombianPhone } from '@/lib/validators'
 
@@ -84,12 +85,7 @@ export async function POST(request: NextRequest) {
           },
         },
         businessHours: {
-          create: Array.from({ length: 7 }, (_, dayOfWeek) => ({
-            dayOfWeek,
-            openTime: dayOfWeek === 0 ? '00:00' : '08:00',
-            closeTime: dayOfWeek === 0 ? '00:00' : '18:00',
-            isClosed: dayOfWeek === 0,
-          })),
+          create: getDefaultBusinessHours(),
         },
       },
     })

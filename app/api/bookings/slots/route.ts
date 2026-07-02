@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { ACTIVE_BOOKING_STATUSES, getAvailableSlots } from '@/lib/booking'
 import { canTenantAcceptBookings } from '@/lib/tenant-public'
 import { getDayOfWeekFromDateRaw, isPastBookingDateTime, isValidDateRaw, parseBookingDate } from '@/lib/datetime'
+import { getDefaultBusinessHours } from '@/lib/default-business-hours'
 
 export async function GET(request: NextRequest) {
   const subdomain = request.nextUrl.searchParams.get('subdomain')
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
   const bookingDate = parseBookingDate(date)
   const dayOfWeek = getDayOfWeekFromDateRaw(date)
 
-  const businessHour = await prisma.businessHour.findUnique({
+  let businessHour = await prisma.businessHour.findUnique({
     where: {
       tenantId_dayOfWeek: {
         tenantId: tenant.id,
@@ -46,8 +47,35 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  if (!businessHour || businessHour.isClosed) {
-    return NextResponse.json({ slots: [] })
+  if (!businessHour) {
+    const hoursCount = await prisma.businessHour.count({ where: { tenantId: tenant.id } })
+    if (hoursCount === 0) {
+      await prisma.businessHour.createMany({
+        data: getDefaultBusinessHours().map((hour) => ({ ...hour, tenantId: tenant.id })),
+      })
+      businessHour = await prisma.businessHour.findUnique({
+        where: {
+          tenantId_dayOfWeek: {
+            tenantId: tenant.id,
+            dayOfWeek,
+          },
+        },
+      })
+    }
+  }
+
+  if (!businessHour) {
+    return NextResponse.json({
+      slots: [],
+      message: 'Este negocio aún no tiene horarios configurados.',
+    })
+  }
+
+  if (businessHour.isClosed) {
+    return NextResponse.json({
+      slots: [],
+      message: 'El negocio está cerrado este día. Elige otra fecha.',
+    })
   }
 
   const bookings = await prisma.booking.findMany({

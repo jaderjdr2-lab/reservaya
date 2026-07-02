@@ -71,6 +71,21 @@ El callback `/auth/callback` crea el perfil en BD y redirige a onboarding si el 
 4. Usuario nuevo → `/onboarding`
 5. Usuario con negocio → `/dashboard`
 
+## 7. Activación automática (script)
+
+Si ya tienes credenciales de Google Cloud y un token de Supabase:
+
+```bash
+# .env
+SUPABASE_ACCESS_TOKEN=sbp_...          # supabase.com/dashboard/account/tokens
+GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...
+
+npm run setup:google
+```
+
+Esto activa Google en Supabase vía Management API sin entrar al dashboard.
+
 ## Errores comunes
 
 | Error | Causa | Solución |

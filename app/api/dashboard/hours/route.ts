@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { handleAuthRouteError, requireOwner } from '@/lib/tenant-access'
 import { isValidBusinessHours } from '@/lib/validators'
+import { getDefaultBusinessHours } from '@/lib/default-business-hours'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,10 +10,21 @@ export async function GET() {
   try {
     const { tenant } = await requireOwner()
 
-    const hours = await prisma.businessHour.findMany({
+    let hours = await prisma.businessHour.findMany({
       where: { tenantId: tenant.id },
       orderBy: { dayOfWeek: 'asc' },
     })
+
+    if (hours.length === 0) {
+      const defaults = getDefaultBusinessHours()
+      await prisma.businessHour.createMany({
+        data: defaults.map((hour) => ({ ...hour, tenantId: tenant.id })),
+      })
+      hours = await prisma.businessHour.findMany({
+        where: { tenantId: tenant.id },
+        orderBy: { dayOfWeek: 'asc' },
+      })
+    }
 
     return NextResponse.json(hours)
   } catch (error) {
