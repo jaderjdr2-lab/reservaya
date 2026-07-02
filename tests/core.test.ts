@@ -7,10 +7,11 @@ import {
   parseBookingDate,
 } from '@/lib/datetime'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { buildWhatsAppLink } from '@/lib/whatsapp'
+import { buildWhatsAppLink, buildClientBookingConfirmationMessage } from '@/lib/whatsapp'
 import { isValidSubdomain } from '@/lib/utils'
 import { GOOGLE_OAUTH_ENABLED, isMainHostname } from '@/lib/constants'
-import { isValidColombianPhone, normalizeColombianPhone } from '@/lib/validators'
+import { isValidColombianPhone, normalizeColombianPhone, isValidEmailRequired } from '@/lib/validators'
+import { buildBookingConfirmationSubject, buildBookingConfirmationText } from '@/lib/email/booking-confirmation-content'
 import { canTenantAcceptBookings } from '@/lib/tenant-public'
 
 describe('WhatsApp', () => {
@@ -134,5 +135,41 @@ describe('Tenant público', () => {
         subscriptionStatus: 'PAST_DUE',
       } as Parameters<typeof canTenantAcceptBookings>[0])
     ).toBe(false)
+  })
+})
+
+describe('Email reserva', () => {
+  it('requiere email válido', () => {
+    expect(isValidEmailRequired('cliente@ejemplo.com')).toBe(true)
+    expect(isValidEmailRequired('')).toBe(false)
+    expect(isValidEmailRequired('invalido')).toBe(false)
+  })
+
+  it('genera asunto y cuerpo de confirmación', () => {
+    expect(buildBookingConfirmationSubject('Barbería Demo')).toBe('Reserva confirmada — Barbería Demo')
+    const text = buildBookingConfirmationText({
+      customerName: 'Juan',
+      businessName: 'Barbería Demo',
+      serviceName: 'Corte',
+      dateLabel: 'lunes, 1 de julio de 2026',
+      timeLabel: '10:00',
+    })
+    expect(text).toContain('Juan')
+    expect(text).toContain('Corte')
+    expect(text).toContain('10:00')
+  })
+
+  it('incluye enlace público en mensaje WhatsApp al cliente', () => {
+    const msg = buildClientBookingConfirmationMessage({
+      customerName: 'Ana',
+      businessName: 'Barbería Demo',
+      serviceName: 'Corte',
+      dateLabel: 'viernes, 5 de julio de 2026',
+      timeLabel: '3:00 p.m.',
+      publicUrl: 'https://reservaya.co/barberia',
+    })
+    expect(msg).toContain('Ana')
+    expect(msg).toContain('https://reservaya.co/barberia')
+    expect(msg).toContain('próxima cita')
   })
 })

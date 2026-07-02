@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { DashboardShell, Alert, Button, Card } from '@/components/ui'
 import { formatDateEs, formatTime } from '@/lib/utils'
+import CreateBookingForm from './CreateBookingForm'
 
 type Booking = {
   id: string
@@ -12,12 +13,13 @@ type Booking = {
   startTime: string
   status: string
   service: { name: string }
-  whatsappLink: string
+  customerWhatsappLink: string
 }
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [error, setError] = useState('')
+  const [showForm, setShowForm] = useState(true)
 
   async function loadBookings() {
     const response = await fetch('/api/dashboard/bookings')
@@ -42,6 +44,17 @@ export default function BookingsPage() {
   return (
     <DashboardShell title="Reservas">
       {error && <Alert message={error} />}
+
+      <Card className="mb-6">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Nueva reserva (cliente en el negocio)</h2>
+          <Button type="button" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? 'Ocultar' : 'Mostrar'}
+          </Button>
+        </div>
+        {showForm && <CreateBookingForm onCreated={loadBookings} />}
+      </Card>
+
       <div className="space-y-4">
         {bookings.length === 0 && (
           <Card>
@@ -62,12 +75,12 @@ export default function BookingsPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <a
-                  href={booking.whatsappLink}
+                  href={booking.customerWhatsappLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
+                  className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
                 >
-                  Escribir al cliente
+                  Enviar enlace al cliente
                 </a>
                 {booking.status !== 'CONFIRMED' && (
                   <Button onClick={() => updateStatus(booking.id, 'CONFIRMED')}>Confirmar</Button>

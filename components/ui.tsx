@@ -176,6 +176,12 @@ export function Label({ children }: { children: React.ReactNode }) {
   return <label className="mb-1 block text-sm font-medium text-gray-700">{children}</label>
 }
 
-export function Card({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border bg-white p-6 shadow-sm">{children}</div>
+export function Card({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return <div className={`rounded-xl border bg-white p-6 shadow-sm ${className}`}>{children}</div>
 }

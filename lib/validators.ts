@@ -18,9 +18,16 @@ export function isValidCustomerName(value: string): boolean {
   return trimmed.length >= 2 && trimmed.length <= 100
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export function isValidEmailOptional(value?: string | null): boolean {
   if (!value) return true
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+  return EMAIL_REGEX.test(value.trim())
+}
+
+export function isValidEmailRequired(value?: string | null): boolean {
+  if (!value?.trim()) return false
+  return EMAIL_REGEX.test(value.trim())
 }
 
 export function sanitizeNotes(value?: string | null, maxLength = 500): string | null {

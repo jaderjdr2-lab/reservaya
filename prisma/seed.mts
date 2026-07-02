@@ -29,7 +29,7 @@ async function main() {
         subscription: {
           create: {
             status: 'TRIAL',
-            monthlyPriceCents: 15000000,
+            monthlyPriceCents: 4000000,
             currentPeriodStart: now,
             currentPeriodEnd: addMonths(now, 1),
           },

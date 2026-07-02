@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { handleAuthRouteError, requireOwner } from '@/lib/tenant-access'
+import { getBaseUrl } from '@/lib/getBaseUrl'
 import { isValidColombianPhone } from '@/lib/validators'
+
+export const dynamic = 'force-dynamic'
+
+export async function GET() {
+  try {
+    const { tenant } = await requireOwner()
+    const publicUrl = `${getBaseUrl()}/${tenant.subdomain}`
+
+    return NextResponse.json({
+      subdomain: tenant.subdomain,
+      name: tenant.name,
+      publicUrl,
+      whatsapp: tenant.whatsapp,
+    })
+  } catch (error) {
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
+  }
+}
 
 export async function PUT(request: NextRequest) {
   try {

@@ -181,6 +181,7 @@ async function runBookingFlow() {
     startTime: slot,
     customerName: 'Cliente Entrenamiento E2E',
     customerPhone: `300${String(Date.now()).slice(-7)}`,
+    customerEmail: `e2e+${Date.now()}@reservaya.test`,
   }
 
   const { res: okRes, body: okBody } = await fetchJson('/api/bookings', {

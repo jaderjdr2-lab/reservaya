@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { SiteHeader } from '@/components/ui'
+import { MONTHLY_PRICE_COP } from '@/lib/constants'
 
 export default function TermsPage() {
   return (
@@ -27,8 +28,9 @@ export default function TermsPage() {
 
         <h2>3. Suscripción</h2>
         <p>
-          El plan mensual referencia es de $150.000 COP por negocio. La activación y cobro pueden
-          gestionarse manualmente hasta integrar pasarela de pagos (Wompi).
+          Durante la fase piloto los negocios pueden usar RESERVAYA sin cobro automático. El plan
+          mensual de referencia es de ${MONTHLY_PRICE_COP.toLocaleString('es-CO')} COP por negocio.
+          La activación y cobro se gestionan manualmente hasta integrar pasarela de pagos (Wompi).
         </p>
 
         <h2>4. Uso aceptable</h2>

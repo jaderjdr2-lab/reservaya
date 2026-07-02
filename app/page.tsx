@@ -33,7 +33,9 @@ export default function HomePage() {
             </Link>
           </div>
           <p className="mt-6 text-sm text-gray-500">
-            Plan mensual desde ${MONTHLY_PRICE_COP.toLocaleString('es-CO')} COP por negocio.
+            <strong className="text-gray-700">Prueba gratis</strong> mientras validamos con negocios
+            reales. Plan de referencia después: ${MONTHLY_PRICE_COP.toLocaleString('es-CO')} COP/mes
+            por negocio (sin pago automático por ahora).
           </p>
         </section>
         <footer className="mt-8 flex gap-4 text-sm text-gray-500">

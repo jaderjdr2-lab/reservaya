@@ -32,7 +32,10 @@ export default function PublicBookingForm({
   const [loading, setLoading] = useState(false)
   const [confirmation, setConfirmation] = useState<{
     message: string
-    whatsappLink: string
+    customerWhatsappLink: string
+    publicUrl: string
+    customerEmail: string
+    emailSent: boolean
   } | null>(null)
 
   useEffect(() => {
@@ -127,7 +130,10 @@ export default function PublicBookingForm({
 
     setConfirmation({
       message: 'Tu reserva fue confirmada.',
-      whatsappLink: data.whatsappLink,
+      customerWhatsappLink: data.customerWhatsappLink,
+      publicUrl: data.publicUrl || '',
+      customerEmail: customerEmail.trim(),
+      emailSent: Boolean(data.emailSent),
     })
   }
 
@@ -136,15 +142,21 @@ export default function PublicBookingForm({
       <div className="rounded-xl border border-green-200 bg-green-50 p-6">
         <h3 className="text-lg font-semibold text-green-900">{confirmation.message}</h3>
         <p className="mt-2 text-sm text-green-800">
-          Guarda estos datos. También puedes avisar al negocio por WhatsApp.
+          {confirmation.emailSent
+            ? `Te enviamos la confirmación a ${confirmation.customerEmail}. Revisa tu bandeja de entrada y spam.`
+            : `Guarda estos datos. No pudimos enviar el correo a ${confirmation.customerEmail} en este momento.`}
+        </p>
+        <p className="mt-2 text-sm text-green-800">
+          Guarda este enlace para tu próxima cita:{' '}
+          <span className="break-all font-medium">{confirmation.publicUrl}</span>
         </p>
         <a
-          href={confirmation.whatsappLink}
+          href={confirmation.customerWhatsappLink}
           target="_blank"
           rel="noreferrer"
           className="mt-4 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
         >
-          Enviar confirmación por WhatsApp
+          Enviarme confirmación por WhatsApp
         </a>
       </div>
     )
@@ -229,8 +241,15 @@ export default function PublicBookingForm({
       </div>
 
       <div>
-        <Label>Email (opcional)</Label>
-        <Input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+        <Label>Correo electrónico</Label>
+        <Input
+          type="email"
+          value={customerEmail}
+          onChange={(e) => setCustomerEmail(e.target.value)}
+          placeholder="tu@correo.com"
+          required
+        />
+        <p className="mt-1 text-xs text-gray-500">Te enviaremos la confirmación de tu reserva.</p>
       </div>
 
       <div>

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { ensureUserProfile, getOwnedTenant } from '@/lib/auth'
 import { DashboardShell, Card, Alert } from '@/components/ui'
 import { CopyPublicUrl } from '@/components/CopyPublicUrl'
+import { SharePublicLinkWhatsApp } from '@/components/SharePublicLinkWhatsApp'
 import { getBaseUrl } from '@/lib/getBaseUrl'
 import { formatCop } from '@/lib/utils'
 import { MONTHLY_PRICE_COP } from '@/lib/constants'
@@ -68,10 +69,15 @@ export default async function DashboardPage() {
           <p className="text-sm text-gray-500">Enlace público</p>
           <p className="mt-2 break-all text-sm text-emerald-700">{publicUrl}</p>
           <CopyPublicUrl url={publicUrl} />
+          <SharePublicLinkWhatsApp businessName={tenant.name} publicUrl={publicUrl} />
+          <p className="mt-2 text-xs text-gray-500">
+            Comparte este enlace con tus clientes para que reserven solos desde el celular.
+          </p>
         </Card>
       </div>
       <p className="mt-6 text-xs text-gray-500">
-        Plan referencia: ${MONTHLY_PRICE_COP.toLocaleString('es-CO')} COP / mes
+        Fase piloto: prueba gratis. Plan de referencia: ${MONTHLY_PRICE_COP.toLocaleString('es-CO')}{' '}
+        COP / mes (sin pago automático por ahora).
       </p>
     </DashboardShell>
   )

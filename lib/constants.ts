@@ -3,10 +3,10 @@ export const GOOGLE_OAUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED
 
 export const APP_NAME = 'RESERVAYA'
 
-/** Precio mensual por negocio según modelo de negocio Jhon */
-export const MONTHLY_PRICE_COP = 150_000
+/** Precio mensual de referencia (fase piloto: cobro manual, sin Wompi aún) */
+export const MONTHLY_PRICE_COP = 40_000
 
-export const MONTHLY_PRICE_CENTS = 15_000_000
+export const MONTHLY_PRICE_CENTS = 4_000_000
 
 export const DEFAULT_CITY = 'Barrancabermeja'
 

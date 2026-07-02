@@ -1,25 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import {
-  ACTIVE_BOOKING_STATUSES,
-  addMinutesToTime,
-  getAvailableSlots,
-  hasBookingConflict,
-} from '@/lib/booking'
-import {
-  getDayOfWeekFromDateRaw,
-  isPastBookingDateTime,
-  isValidDateRaw,
-  parseBookingDate,
-} from '@/lib/datetime'
-import { canTenantAcceptBookings } from '@/lib/tenant-public'
-import { buildBookingCustomerMessage, buildWhatsAppLink } from '@/lib/whatsapp'
-import { formatDateEs, formatTime } from '@/lib/utils'
+import { BookingCreateError, createBooking } from '@/lib/create-booking'
+import { sendBookingConfirmationEmail } from '@/lib/email/send-booking-confirmation'
+import { getBaseUrl } from '@/lib/getBaseUrl'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { formatDateEs, formatTime } from '@/lib/utils'
+import { buildClientBookingConfirmationMessage, buildWhatsAppLink } from '@/lib/whatsapp'
 import {
   isValidColombianPhone,
   isValidCustomerName,
-  isValidEmailOptional,
+  isValidEmailRequired,
   normalizeColombianPhone,
   sanitizeNotes,
 } from '@/lib/validators'
@@ -42,15 +31,19 @@ export async function POST(request: NextRequest) {
     const startTime = String(body.startTime || '')
     const customerName = String(body.customerName || '').trim()
     const customerPhoneRaw = String(body.customerPhone || '').trim()
-    const customerEmail = body.customerEmail ? String(body.customerEmail).trim() : null
+    const customerEmail = String(body.customerEmail || '').trim()
     const notes = sanitizeNotes(body.notes)
 
-    if (!subdomain || !serviceId || !bookingDateRaw || !startTime || !customerName || !customerPhoneRaw) {
+    if (
+      !subdomain ||
+      !serviceId ||
+      !bookingDateRaw ||
+      !startTime ||
+      !customerName ||
+      !customerPhoneRaw ||
+      !customerEmail
+    ) {
       return NextResponse.json({ error: 'Completa los campos obligatorios.' }, { status: 400 })
-    }
-
-    if (!isValidDateRaw(bookingDateRaw)) {
-      return NextResponse.json({ error: 'Fecha inválida.' }, { status: 400 })
     }
 
     if (!isValidCustomerName(customerName)) {
@@ -64,105 +57,65 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!isValidEmailOptional(customerEmail)) {
-      return NextResponse.json({ error: 'El correo electrónico no es válido.' }, { status: 400 })
+    if (!isValidEmailRequired(customerEmail)) {
+      return NextResponse.json({ error: 'Ingresa un correo electrónico válido.' }, { status: 400 })
     }
 
     const customerPhone = normalizeColombianPhone(customerPhoneRaw)
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { subdomain },
-      include: { subscription: true },
+    const { booking, tenant, service, bookingDate } = await createBooking({
+      subdomain,
+      serviceId,
+      bookingDateRaw,
+      startTime,
+      customerName,
+      customerPhone,
+      customerEmail,
+      notes,
     })
 
-    if (!tenant || !canTenantAcceptBookings(tenant)) {
-      return NextResponse.json({ error: 'Este negocio no está recibiendo reservas.' }, { status: 403 })
-    }
+    const dateLabel = formatDateEs(bookingDate)
+    const timeLabel = formatTime(startTime)
+    const publicUrl = `${getBaseUrl()}/${tenant.subdomain}`
 
-    const service = await prisma.service.findFirst({
-      where: { id: serviceId, tenantId: tenant.id, isActive: true },
-    })
-
-    if (!service) {
-      return NextResponse.json({ error: 'Servicio no válido.' }, { status: 404 })
-    }
-
-    const bookingDate = parseBookingDate(bookingDateRaw)
-
-    if (isPastBookingDateTime(bookingDateRaw, startTime)) {
-      return NextResponse.json({ error: 'No puedes reservar en el pasado.' }, { status: 400 })
-    }
-
-    const dayOfWeek = getDayOfWeekFromDateRaw(bookingDateRaw)
-    const businessHour = await prisma.businessHour.findUnique({
-      where: {
-        tenantId_dayOfWeek: { tenantId: tenant.id, dayOfWeek },
-      },
-    })
-
-    if (!businessHour || businessHour.isClosed) {
-      return NextResponse.json({ error: 'El negocio está cerrado ese día.' }, { status: 400 })
-    }
-
-    const endTime = addMinutesToTime(startTime, service.durationMinutes)
-
-    const availableSlots = getAvailableSlots({
-      openTime: businessHour.openTime,
-      closeTime: businessHour.closeTime,
-      durationMinutes: service.durationMinutes,
-      bookedSlots: [],
-    })
-
-    if (!availableSlots.includes(startTime)) {
-      return NextResponse.json({ error: 'La hora seleccionada está fuera del horario disponible.' }, { status: 400 })
-    }
-
-    const booking = await prisma.$transaction(async (tx) => {
-      const existingBookings = await tx.booking.findMany({
-        where: {
-          tenantId: tenant.id,
-          bookingDate,
-          status: { in: [...ACTIVE_BOOKING_STATUSES] },
-        },
-        select: { startTime: true, endTime: true },
-      })
-
-      if (hasBookingConflict(startTime, endTime, existingBookings)) {
-        throw new Error('SLOT_TAKEN')
-      }
-
-      return tx.booking.create({
-        data: {
-          tenantId: tenant.id,
-          serviceId: service.id,
-          customerName,
-          customerPhone,
-          customerEmail,
-          notes,
-          bookingDate,
-          startTime,
-          endTime,
-          status: 'CONFIRMED',
-        },
-        include: { service: true },
-      })
-    })
-
-    const whatsappLink = buildWhatsAppLink(
-      tenant.whatsapp || tenant.phone || customerPhone,
-      buildBookingCustomerMessage({
+    const customerWhatsappLink = buildWhatsAppLink(
+      customerPhone,
+      buildClientBookingConfirmationMessage({
+        customerName,
         businessName: tenant.name,
         serviceName: service.name,
-        dateLabel: formatDateEs(bookingDate),
-        timeLabel: formatTime(startTime),
-        customerName,
+        dateLabel,
+        timeLabel,
+        publicUrl,
       })
     )
 
-    return NextResponse.json({ booking: { id: booking.id, status: booking.status }, whatsappLink }, { status: 201 })
+    const emailResult = await sendBookingConfirmationEmail({
+      to: customerEmail,
+      customerName,
+      businessName: tenant.name,
+      serviceName: service.name,
+      dateLabel,
+      timeLabel,
+      businessAddress: tenant.address,
+      businessCity: tenant.city,
+      businessWhatsapp: tenant.whatsapp,
+      notes,
+      publicUrl,
+    })
+
+    return NextResponse.json(
+      {
+        booking: { id: booking.id, status: booking.status },
+        customerWhatsappLink,
+        publicUrl,
+        emailSent: emailResult.sent,
+      },
+      { status: 201 }
+    )
   } catch (error) {
-    if (error instanceof Error && error.message === 'SLOT_TAKEN') {
-      return NextResponse.json({ error: 'Esa hora ya no está disponible.' }, { status: 409 })
+    if (error instanceof BookingCreateError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
     }
     console.error('Create booking error:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
