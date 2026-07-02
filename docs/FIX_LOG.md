@@ -78,6 +78,14 @@ Negocios creados antes de esta auditoría pueden tener `monthlyPriceCents = 4000
 
 ---
 
+### 2026-07-02 — GitHub + Vercel producción
+
+- **GitHub:** repo privado https://github.com/jaderjdr2-lab/reservaya — push `main` OK
+- **Vercel producción:** https://reservaya-swart.vercel.app
+- **Variables** subidas a Vercel (Supabase, DB, ADMIN_EMAIL, NEXT_PUBLIC_API_URL)
+
+---
+
 ## Backup previo
 
 - ZIP: `C:\Users\PC\Desktop\RESERVAYA-backup-checkpoint-20260701-224745.zip`
