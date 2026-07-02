@@ -1,4 +1,5 @@
-export const GOOGLE_OAUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true'
+/** Activo por defecto; desactivar con NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=false */
+export const GOOGLE_OAUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED !== 'false'
 
 export const APP_NAME = 'RESERVAYA'
 

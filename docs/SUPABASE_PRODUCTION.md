@@ -25,3 +25,13 @@ El flujo usa Supabase `resetPasswordForEmail` → `/auth/callback?next=/reset-pa
 ## Cuando tengas dominio propio
 
 Reemplaza `reservaya-swart.vercel.app` por `reservaya.co` en todas las URLs anteriores.
+
+## Google OAuth (Gmail)
+
+Ver guía completa: `docs/GOOGLE_OAUTH.md`
+
+Resumen:
+1. Crear OAuth Client en Google Cloud Console
+2. Redirect URI en Google: `https://ofsvjygoyhmkrorkvzsa.supabase.co/auth/v1/callback`
+3. Activar Google en Supabase Auth → Providers
+4. Variable `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=true` en Vercel

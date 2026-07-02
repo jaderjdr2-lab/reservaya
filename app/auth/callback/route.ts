@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/cookies'
-import { ensureUserProfile } from '@/lib/auth'
+import { ensureUserProfile, getOwnedTenant } from '@/lib/auth'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -30,6 +30,17 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${requestUrl.origin}/login?error=callback`)
   }
 
-  await ensureUserProfile()
-  return NextResponse.redirect(`${requestUrl.origin}${redirectPath}`)
+  const profile = await ensureUserProfile()
+  let destination = redirectPath
+
+  if (profile && type !== 'recovery') {
+    const tenant = await getOwnedTenant(profile.id)
+    if (!tenant && !destination.startsWith('/admin')) {
+      destination = '/onboarding'
+    } else if (tenant && destination === '/onboarding') {
+      destination = '/dashboard'
+    }
+  }
+
+  return NextResponse.redirect(`${requestUrl.origin}${destination}`)
 }

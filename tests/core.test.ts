@@ -9,7 +9,7 @@ import {
 import { checkRateLimit } from '@/lib/rate-limit'
 import { buildWhatsAppLink } from '@/lib/whatsapp'
 import { isValidSubdomain } from '@/lib/utils'
-import { isMainHostname } from '@/lib/constants'
+import { GOOGLE_OAUTH_ENABLED, isMainHostname } from '@/lib/constants'
 import { isValidColombianPhone, normalizeColombianPhone } from '@/lib/validators'
 import { canTenantAcceptBookings } from '@/lib/tenant-public'
 
@@ -109,6 +109,12 @@ describe('Teléfono colombiano', () => {
     expect(normalizeColombianPhone('57 300 123 4567')).toBe('3001234567')
     expect(isValidColombianPhone('3001234567')).toBe(true)
     expect(isValidColombianPhone('2001234567')).toBe(false)
+  })
+})
+
+describe('Google OAuth', () => {
+  it('está habilitado salvo NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=false', () => {
+    expect(GOOGLE_OAUTH_ENABLED).toBe(process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED !== 'false')
   })
 })
 
