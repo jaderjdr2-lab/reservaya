@@ -5,8 +5,8 @@ import {
   addMinutesToTime,
   getAvailableSlots,
   hasBookingConflict,
-  isPastBooking,
 } from '@/lib/booking'
+import { isPastBookingDateTime, parseBookingDate, getDayOfWeekFromDateRaw } from '@/lib/datetime'
 import { canTenantAcceptBookings } from '@/lib/tenant-public'
 import { buildBookingCustomerMessage, buildWhatsAppLink } from '@/lib/whatsapp'
 import { formatDateEs, formatTime } from '@/lib/utils'
@@ -68,13 +68,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Servicio no válido.' }, { status: 404 })
     }
 
-    const bookingDate = new Date(`${bookingDateRaw}T00:00:00`)
+    const bookingDate = parseBookingDate(bookingDateRaw)
 
-    if (isPastBooking(bookingDate, startTime)) {
+    if (isPastBookingDateTime(bookingDateRaw, startTime)) {
       return NextResponse.json({ error: 'No puedes reservar en el pasado.' }, { status: 400 })
     }
 
-    const dayOfWeek = bookingDate.getDay()
+    const dayOfWeek = getDayOfWeekFromDateRaw(bookingDateRaw)
     const businessHour = await prisma.businessHour.findUnique({
       where: {
         tenantId_dayOfWeek: { tenantId: tenant.id, dayOfWeek },

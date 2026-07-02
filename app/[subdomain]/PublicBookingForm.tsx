@@ -155,7 +155,7 @@ export default function PublicBookingForm({
       </div>
       <div>
         <Label>Notas (opcional)</Label>
-        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={500} />
       </div>
       <Button type="submit" disabled={loading || !startTime}>
         {loading ? 'Reservando...' : 'Confirmar reserva'}

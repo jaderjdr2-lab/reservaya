@@ -26,6 +26,15 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const tenantId = String(body.tenantId || '')
 
+    if (!tenantId) {
+      return NextResponse.json({ error: 'ID de negocio requerido' }, { status: 400 })
+    }
+
+    const existing = await prisma.tenant.findUnique({ where: { id: tenantId } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
+    }
+
     const tenant = await prisma.tenant.update({
       where: { id: tenantId },
       data: {

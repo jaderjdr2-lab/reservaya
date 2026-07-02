@@ -1,5 +1,8 @@
 import prisma from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { isAdminEmail } from '@/lib/admin'
+
+export { isAdminEmail }
 
 export async function getSessionUser() {
   const supabase = createClient()
@@ -59,11 +62,6 @@ export async function requireOwnedTenant(userProfileId: string) {
     throw new Error('NO_TENANT')
   }
   return tenant
-}
-
-export function isAdminEmail(email?: string | null) {
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase()
-  return !!email && !!adminEmail && email.toLowerCase() === adminEmail
 }
 
 export async function requireAdmin() {

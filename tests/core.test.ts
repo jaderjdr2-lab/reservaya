@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getAvailableSlots, hasBookingConflict, isPastBooking } from '@/lib/booking'
+import { getDayOfWeekFromDateRaw, isPastBookingDateTime, parseBookingDate } from '@/lib/datetime'
 import { buildWhatsAppLink } from '@/lib/whatsapp'
 import { isValidSubdomain } from '@/lib/utils'
 import { isMainHostname } from '@/lib/constants'
@@ -52,10 +53,25 @@ describe('Slots', () => {
 })
 
 describe('Reservas pasado', () => {
-  it('detecta reserva en el pasado', () => {
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    expect(isPastBooking(yesterday, '10:00')).toBe(true)
+  it('detecta fecha anterior', () => {
+    expect(isPastBooking('2020-01-01', '10:00')).toBe(true)
+  })
+
+  it('parsea fecha de reserva en UTC estable', () => {
+    const d = parseBookingDate('2026-07-15')
+    expect(d.toISOString()).toBe('2026-07-15T00:00:00.000Z')
+  })
+
+  it('calcula día de semana desde YYYY-MM-DD', () => {
+    expect(getDayOfWeekFromDateRaw('2026-07-01')).toBe(3) // miércoles
+  })
+
+  it('respeta zona horaria Bogotá para hoy', () => {
+    const today = new Date()
+    const bogotaToday = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Bogota',
+    }).format(today)
+    expect(isPastBookingDateTime(bogotaToday, '23:59', today)).toBe(false)
   })
 })
 

@@ -75,13 +75,24 @@ export async function PUT(request: NextRequest) {
     const existing = await prisma.service.findFirst({ where: { id, tenantId: tenant.id } })
     if (!existing) return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
 
+    const durationMinutes = body.durationMinutes ? Number(body.durationMinutes) : existing.durationMinutes
+    const priceCents = body.priceCents ? Math.round(Number(body.priceCents)) : existing.priceCents
+
+    if (!isValidServiceDuration(durationMinutes)) {
+      return NextResponse.json({ error: 'Duración inválida (15-480 minutos).' }, { status: 400 })
+    }
+
+    if (!isValidPriceCents(priceCents)) {
+      return NextResponse.json({ error: 'Precio inválido.' }, { status: 400 })
+    }
+
     const service = await prisma.service.update({
       where: { id },
       data: {
         name: body.name ? String(body.name).trim() : existing.name,
         description: body.description !== undefined ? String(body.description).trim() || null : existing.description,
-        durationMinutes: body.durationMinutes ? Number(body.durationMinutes) : existing.durationMinutes,
-        priceCents: body.priceCents ? Math.round(Number(body.priceCents)) : existing.priceCents,
+        durationMinutes,
+        priceCents,
         isActive: body.isActive !== undefined ? Boolean(body.isActive) : existing.isActive,
       },
     })

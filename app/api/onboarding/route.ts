@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { ensureUserProfile, getOwnedTenant } from '@/lib/auth'
 import { MONTHLY_PRICE_CENTS, RESERVED_SUBDOMAINS } from '@/lib/constants'
 import { addMonths, isValidSubdomain, normalizeSubdomain, slugify } from '@/lib/utils'
+import { isValidColombianPhone } from '@/lib/validators'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,13 @@ export async function POST(request: NextRequest) {
 
     if (RESERVED_SUBDOMAINS.includes(subdomain)) {
       return NextResponse.json({ error: 'Ese subdominio está reservado.' }, { status: 400 })
+    }
+
+    if (!isValidColombianPhone(whatsapp)) {
+      return NextResponse.json(
+        { error: 'WhatsApp inválido. Usa un celular colombiano de 10 dígitos.' },
+        { status: 400 }
+      )
     }
 
     const slug = slugify(subdomain)

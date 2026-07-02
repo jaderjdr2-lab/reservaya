@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { ACTIVE_BOOKING_STATUSES, getAvailableSlots, isPastBooking } from '@/lib/booking'
+import { ACTIVE_BOOKING_STATUSES, addMinutesToTime, getAvailableSlots } from '@/lib/booking'
+import { isPastBookingDateTime, parseBookingDate, getDayOfWeekFromDateRaw } from '@/lib/datetime'
 import { canTenantAcceptBookings } from '@/lib/tenant-public'
 
 export async function GET(request: NextRequest) {
@@ -29,8 +30,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
   }
 
-  const bookingDate = new Date(`${date}T00:00:00`)
-  const dayOfWeek = bookingDate.getDay()
+  const bookingDate = parseBookingDate(date)
+  const dayOfWeek = getDayOfWeekFromDateRaw(date)
 
   const businessHour = await prisma.businessHour.findUnique({
     where: {
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
     bookedSlots: bookings,
   })
 
-  slots = slots.filter((slot) => !isPastBooking(bookingDate, slot))
+  slots = slots.filter((slot) => !isPastBookingDateTime(date, slot))
 
   return NextResponse.json({ slots })
 }

@@ -45,11 +45,10 @@ export function getAvailableSlots(params: {
   return slots
 }
 
-export function isPastBooking(date: Date, startTime: string): boolean {
-  const [hours, minutes] = startTime.split(':').map(Number)
-  const bookingDateTime = new Date(date)
-  bookingDateTime.setHours(hours, minutes, 0, 0)
-  return bookingDateTime.getTime() < Date.now()
+import { isPastBookingDateTime } from '@/lib/datetime'
+
+export function isPastBooking(dateRaw: string, startTime: string): boolean {
+  return isPastBookingDateTime(dateRaw, startTime)
 }
 
 export function slotsOverlap(

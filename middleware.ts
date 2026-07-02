@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/middleware'
 import { isMainHostname } from '@/lib/constants'
+import { isAdminEmail } from '@/lib/admin'
 
 export const config = {
   matcher: [
@@ -36,11 +37,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (pathname.startsWith('/admin') && !user) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    redirectUrl.searchParams.set('redirectTo', '/admin')
-    return NextResponse.redirect(redirectUrl)
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/login'
+      redirectUrl.searchParams.set('redirectTo', '/admin')
+      return NextResponse.redirect(redirectUrl)
+    }
+    if (!isAdminEmail(user.email)) {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/dashboard'
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   if (pathname.startsWith('/auth/callback')) {
