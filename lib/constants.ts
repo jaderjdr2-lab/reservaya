@@ -1,3 +1,5 @@
+export const GOOGLE_OAUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true'
+
 export const APP_NAME = 'RESERVAYA'
 
 /** Precio mensual por negocio según modelo de negocio Jhon */

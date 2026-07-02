@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { requireAdmin } from '@/lib/auth'
+import { handleAuthRouteError, requireAdminUser } from '@/lib/tenant-access'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    await requireAdmin()
+    await requireAdminUser()
 
     const tenants = await prisma.tenant.findMany({
       include: {
@@ -15,14 +17,15 @@ export async function GET() {
     })
 
     return NextResponse.json(tenants)
-  } catch {
-    return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+  } catch (error) {
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    await requireAdmin()
+    await requireAdminUser()
     const body = await request.json()
     const tenantId = String(body.tenantId || '')
 
@@ -56,7 +59,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(tenant)
   } catch (error) {
-    console.error('Admin update error:', error)
-    return NextResponse.json({ error: 'Acceso denegado o error interno' }, { status: 403 })
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
   }
 }

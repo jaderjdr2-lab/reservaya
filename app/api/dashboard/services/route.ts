@@ -1,31 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { ensureUserProfile, getOwnedTenant } from '@/lib/auth'
+import { handleAuthRouteError, requireOwner } from '@/lib/tenant-access'
 import { isValidPriceCents, isValidServiceDuration } from '@/lib/validators'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
-  const profile = await ensureUserProfile()
-  if (!profile) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  try {
+    const { tenant } = await requireOwner()
 
-  const tenant = await getOwnedTenant(profile.id)
-  if (!tenant) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
+    const services = await prisma.service.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { createdAt: 'desc' },
+    })
 
-  const services = await prisma.service.findMany({
-    where: { tenantId: tenant.id },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  return NextResponse.json(services)
+    return NextResponse.json(services)
+  } catch (error) {
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const profile = await ensureUserProfile()
-    if (!profile) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
-    const tenant = await getOwnedTenant(profile.id)
-    if (!tenant) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
-
+    const { tenant } = await requireOwner()
     const body = await request.json()
     const name = String(body.name || '').trim()
     const description = body.description ? String(body.description).trim() : null
@@ -56,21 +54,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(service, { status: 201 })
   } catch (error) {
-    console.error('Create service error:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const profile = await ensureUserProfile()
-    if (!profile) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
-    const tenant = await getOwnedTenant(profile.id)
-    if (!tenant) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
-
+    const { tenant } = await requireOwner()
     const body = await request.json()
     const id = String(body.id || '')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID de servicio requerido' }, { status: 400 })
+    }
 
     const existing = await prisma.service.findFirst({ where: { id, tenantId: tenant.id } })
     if (!existing) return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
@@ -99,7 +96,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(service)
   } catch (error) {
-    console.error('Update service error:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
   }
 }

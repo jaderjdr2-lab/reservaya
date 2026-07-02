@@ -86,6 +86,34 @@ Negocios creados antes de esta auditoría pueden tener `monthlyPriceCents = 4000
 
 ---
 
+## 2026-07-02 — Auditoría final Loop Engineering
+
+### Seguridad
+- Dashboard APIs → `requireOwner()` unificado
+- Admin API → `requireAdminUser()`
+- Rate limit POST `/api/bookings` (15/min IP)
+- Respuesta booking pública sin datos internos
+
+### Reservas / datetime
+- `lib/datetime.ts` corregido y ampliado (`isValidDateRaw`)
+- Validación fecha en bookings + slots
+
+### UX / config
+- Google OAuth oculto por defecto (`NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED`)
+- README RESERVAYA (sin boilerplate)
+- `docs/SUPABASE_PRODUCTION.md`
+
+### Datos
+- `npm run migrate:price` → **3 suscripciones** $40k → $150k
+
+### Tests
+- 16/16 Vitest (rate limit, fechas, Bogotá)
+
+### Validación
+- lint ✅ build ✅ prisma validate ✅
+
+---
+
 ## Backup previo
 
 - ZIP: `C:\Users\PC\Desktop\RESERVAYA-backup-checkpoint-20260701-224745.zip`

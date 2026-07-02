@@ -1,50 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { ensureUserProfile, getOwnedTenant } from '@/lib/auth'
+import { handleAuthRouteError, requireOwner } from '@/lib/tenant-access'
 import { buildWhatsAppLink, buildBookingBusinessMessage } from '@/lib/whatsapp'
 import { formatDateEs, formatTime } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
-  const profile = await ensureUserProfile()
-  if (!profile) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  try {
+    const { tenant } = await requireOwner()
 
-  const tenant = await getOwnedTenant(profile.id)
-  if (!tenant) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
+    const bookings = await prisma.booking.findMany({
+      where: { tenantId: tenant.id },
+      include: { service: true },
+      orderBy: [{ bookingDate: 'desc' }, { startTime: 'desc' }],
+    })
 
-  const bookings = await prisma.booking.findMany({
-    where: { tenantId: tenant.id },
-    include: { service: true },
-    orderBy: [{ bookingDate: 'desc' }, { startTime: 'desc' }],
-  })
+    const enriched = bookings.map((booking) => ({
+      id: booking.id,
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      bookingDate: booking.bookingDate,
+      startTime: booking.startTime,
+      status: booking.status,
+      service: { name: booking.service.name },
+      whatsappLink: buildWhatsAppLink(
+        booking.customerPhone,
+        buildBookingBusinessMessage({
+          customerName: booking.customerName,
+          customerPhone: booking.customerPhone,
+          serviceName: booking.service.name,
+          dateLabel: formatDateEs(booking.bookingDate),
+          timeLabel: formatTime(booking.startTime),
+        })
+      ),
+    }))
 
-  const enriched = bookings.map((booking) => ({
-    ...booking,
-    whatsappLink: buildWhatsAppLink(
-      booking.customerPhone,
-      buildBookingBusinessMessage({
-        customerName: booking.customerName,
-        customerPhone: booking.customerPhone,
-        serviceName: booking.service.name,
-        dateLabel: formatDateEs(booking.bookingDate),
-        timeLabel: formatTime(booking.startTime),
-      })
-    ),
-  }))
-
-  return NextResponse.json(enriched)
+    return NextResponse.json(enriched)
+  } catch (error) {
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
+  }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const profile = await ensureUserProfile()
-    if (!profile) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
-    const tenant = await getOwnedTenant(profile.id)
-    if (!tenant) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
-
+    const { tenant } = await requireOwner()
     const body = await request.json()
     const id = String(body.id || '')
     const status = String(body.status || '')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID de reserva requerido' }, { status: 400 })
+    }
 
     if (!['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'].includes(status)) {
       return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
@@ -61,7 +69,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(booking)
   } catch (error) {
-    console.error('Update booking error:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
   }
 }

@@ -10,6 +10,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "migrate:price": "node --loader ts-node/esm scripts/migrate-subscription-price.mts",
     "proxy": "node proxy-server.js",
     "dev:proxy": "cross-env NODE_ENV=development concurrently \"npm run dev\" \"npm run proxy\""
   },

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { ACTIVE_BOOKING_STATUSES, addMinutesToTime, getAvailableSlots } from '@/lib/booking'
-import { isPastBookingDateTime, parseBookingDate, getDayOfWeekFromDateRaw } from '@/lib/datetime'
+import { ACTIVE_BOOKING_STATUSES, getAvailableSlots } from '@/lib/booking'
 import { canTenantAcceptBookings } from '@/lib/tenant-public'
+import { getDayOfWeekFromDateRaw, isPastBookingDateTime, isValidDateRaw, parseBookingDate } from '@/lib/datetime'
 
 export async function GET(request: NextRequest) {
   const subdomain = request.nextUrl.searchParams.get('subdomain')
@@ -11,6 +11,10 @@ export async function GET(request: NextRequest) {
 
   if (!subdomain || !serviceId || !date) {
     return NextResponse.json({ error: 'Parámetros incompletos' }, { status: 400 })
+  }
+
+  if (!isValidDateRaw(date)) {
+    return NextResponse.json({ error: 'Fecha inválida' }, { status: 400 })
   }
 
   const tenant = await prisma.tenant.findUnique({

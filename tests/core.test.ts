@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { getAvailableSlots, hasBookingConflict, isPastBooking } from '@/lib/booking'
-import { getDayOfWeekFromDateRaw, isPastBookingDateTime, parseBookingDate } from '@/lib/datetime'
+import {
+  getDayOfWeekFromDateRaw,
+  isPastBookingDateTime,
+  isValidDateRaw,
+  parseBookingDate,
+} from '@/lib/datetime'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { buildWhatsAppLink } from '@/lib/whatsapp'
 import { isValidSubdomain } from '@/lib/utils'
 import { isMainHostname } from '@/lib/constants'
@@ -49,6 +55,22 @@ describe('Slots', () => {
       bookedSlots: [{ startTime: '09:00', endTime: '10:00' }],
     })
     expect(slots).not.toContain('09:00')
+  })
+})
+
+describe('Rate limit', () => {
+  it('bloquea después del límite', () => {
+    const key = `test-${Date.now()}`
+    expect(checkRateLimit(key, 2, 60_000).allowed).toBe(true)
+    expect(checkRateLimit(key, 2, 60_000).allowed).toBe(true)
+    expect(checkRateLimit(key, 2, 60_000).allowed).toBe(false)
+  })
+})
+
+describe('Fecha reserva', () => {
+  it('valida formato YYYY-MM-DD', () => {
+    expect(isValidDateRaw('2026-07-15')).toBe(true)
+    expect(isValidDateRaw('invalid')).toBe(false)
   })
 })
 

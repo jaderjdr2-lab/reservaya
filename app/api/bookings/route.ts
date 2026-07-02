@@ -6,10 +6,16 @@ import {
   getAvailableSlots,
   hasBookingConflict,
 } from '@/lib/booking'
-import { isPastBookingDateTime, parseBookingDate, getDayOfWeekFromDateRaw } from '@/lib/datetime'
+import {
+  getDayOfWeekFromDateRaw,
+  isPastBookingDateTime,
+  isValidDateRaw,
+  parseBookingDate,
+} from '@/lib/datetime'
 import { canTenantAcceptBookings } from '@/lib/tenant-public'
 import { buildBookingCustomerMessage, buildWhatsAppLink } from '@/lib/whatsapp'
 import { formatDateEs, formatTime } from '@/lib/utils'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import {
   isValidColombianPhone,
   isValidCustomerName,
@@ -20,6 +26,15 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const rate = checkRateLimit(`booking:${ip}`, 15, 60_000)
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos. Espera un momento e intenta de nuevo.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec || 60) } }
+      )
+    }
+
     const body = await request.json()
     const subdomain = String(body.subdomain || '')
     const serviceId = String(body.serviceId || '')
@@ -32,6 +47,10 @@ export async function POST(request: NextRequest) {
 
     if (!subdomain || !serviceId || !bookingDateRaw || !startTime || !customerName || !customerPhoneRaw) {
       return NextResponse.json({ error: 'Completa los campos obligatorios.' }, { status: 400 })
+    }
+
+    if (!isValidDateRaw(bookingDateRaw)) {
+      return NextResponse.json({ error: 'Fecha inválida.' }, { status: 400 })
     }
 
     if (!isValidCustomerName(customerName)) {
@@ -140,7 +159,7 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    return NextResponse.json({ booking, whatsappLink }, { status: 201 })
+    return NextResponse.json({ booking: { id: booking.id, status: booking.status }, whatsappLink }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'SLOT_TAKEN') {
       return NextResponse.json({ error: 'Esa hora ya no está disponible.' }, { status: 409 })

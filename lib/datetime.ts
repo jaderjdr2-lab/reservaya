@@ -11,6 +11,16 @@ export function parseBookingDate(dateRaw: string): Date {
   return new Date(Date.UTC(y, m - 1, d))
 }
 
+export function isValidDateRaw(dateRaw: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return false
+  try {
+    parseBookingDate(dateRaw)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function getDayOfWeekFromDateRaw(dateRaw: string): number {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateRaw)
   if (!match) return 0
@@ -47,7 +57,7 @@ export function getTodayDateRawInBogota(now = new Date()): string {
 }
 
 export function isPastBookingDateTime(dateRaw: string, startTime: string, now = new Date()): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return true
+  if (!isValidDateRaw(dateRaw)) return true
 
   const today = getTodayDateRawInBogota(now)
   if (dateRaw < today) return true

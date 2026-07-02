@@ -1,31 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { ensureUserProfile, getOwnedTenant } from '@/lib/auth'
+import { handleAuthRouteError, requireOwner } from '@/lib/tenant-access'
 import { isValidBusinessHours } from '@/lib/validators'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
-  const profile = await ensureUserProfile()
-  if (!profile) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  try {
+    const { tenant } = await requireOwner()
 
-  const tenant = await getOwnedTenant(profile.id)
-  if (!tenant) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
+    const hours = await prisma.businessHour.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { dayOfWeek: 'asc' },
+    })
 
-  const hours = await prisma.businessHour.findMany({
-    where: { tenantId: tenant.id },
-    orderBy: { dayOfWeek: 'asc' },
-  })
-
-  return NextResponse.json(hours)
+    return NextResponse.json(hours)
+  } catch (error) {
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
+  }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const profile = await ensureUserProfile()
-    if (!profile) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
-    const tenant = await getOwnedTenant(profile.id)
-    if (!tenant) return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
-
+    const { tenant } = await requireOwner()
     const body = await request.json()
     const hours = Array.isArray(body.hours) ? body.hours : []
 
@@ -78,7 +76,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(updated)
   } catch (error) {
-    console.error('Update hours error:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    const handled = handleAuthRouteError(error)
+    return NextResponse.json({ error: handled.error }, { status: handled.status })
   }
 }

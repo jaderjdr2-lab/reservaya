@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { getAuthCallbackPath } from '@/lib/auth-messages'
 import { Button, Alert } from '@/components/ui'
 
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true'
+
 export function GoogleSignInButton({
   label = 'Continuar con Google',
   next = '/dashboard',
@@ -13,6 +15,10 @@ export function GoogleSignInButton({
   next?: string
 }) {
   const [error, setError] = useState('')
+
+  if (!GOOGLE_ENABLED) {
+    return null
+  }
 
   async function handleGoogleSignIn() {
     setError('')
@@ -56,6 +62,10 @@ export function GoogleSignInButton({
 }
 
 export function AuthDivider() {
+  if (!GOOGLE_ENABLED) {
+    return null
+  }
+
   return (
     <div className="my-4 flex items-center gap-3 text-xs text-gray-500">
       <div className="h-px flex-1 bg-gray-200" />

@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
-import { isAdminEmail } from '@/lib/auth'
+import { isAdminEmail } from '@/lib/admin'
 
 export class AuthError extends Error {
   status: number
